@@ -40,9 +40,11 @@ class ReservationService {
           .snapshots()
           .map((snapshot) {
             var reservations = snapshot.docs
-                .map((doc) => Reservation.fromMap({...doc.data(), 'id': doc.id}))
+                .map(
+                  (doc) => Reservation.fromMap({...doc.data(), 'id': doc.id}),
+                )
                 .toList();
-            
+
             // Sort in memory instead of using composite index
             reservations.sort((a, b) => b.date.compareTo(a.date));
             return reservations;
@@ -59,12 +61,14 @@ class ReservationService {
   }
 
   // Update reservation status
-  Future<void> updateReservationStatus(String reservationId, String status) async {
+  Future<void> updateReservationStatus(
+    String reservationId,
+    String status,
+  ) async {
     try {
-      await _firestore
-          .collection('reservations')
-          .doc(reservationId)
-          .update({'status': status});
+      await _firestore.collection('reservations').doc(reservationId).update({
+        'status': status,
+      });
     } catch (e) {
       print('Update reservation status error: $e');
     }
@@ -75,3 +79,5 @@ class ReservationService {
     await updateReservationStatus(reservationId, 'Cancelled');
   }
 }
+
+// Reservation service logic configured
