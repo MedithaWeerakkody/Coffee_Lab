@@ -123,19 +123,14 @@ class _ReservationScreenState extends State<ReservationScreen> {
 
   void _showErrorSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-      ),
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Make Reservation'),
-      ),
+      appBar: AppBar(title: const Text('Make Reservation')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Form(
@@ -170,10 +165,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
                     const SizedBox(height: 4),
                     Text(
                       'Book a table for the perfect dining experience',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[600],
-                      ),
+                      style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                       textAlign: TextAlign.center,
                     ),
                   ],
@@ -184,10 +176,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
               // Date selection
               const Text(
                 'Select Date',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
               InkWell(
@@ -205,11 +194,15 @@ class _ReservationScreenState extends State<ReservationScreen> {
                       const SizedBox(width: 12),
                       Text(
                         _selectedDate != null
-                            ? DateFormat('EEEE, MMMM d, y').format(_selectedDate!)
+                            ? DateFormat(
+                                'EEEE, MMMM d, y',
+                              ).format(_selectedDate!)
                             : 'Select a date',
                         style: TextStyle(
                           fontSize: 16,
-                          color: _selectedDate != null ? Colors.black : Colors.grey,
+                          color: _selectedDate != null
+                              ? Colors.black
+                              : Colors.grey,
                         ),
                       ),
                     ],
@@ -221,10 +214,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
               // Time selection
               const Text(
                 'Select Time',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
               Wrap(
@@ -252,10 +242,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
               // Guest count
               const Text(
                 'Number of Guests',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 8),
               Row(
@@ -309,10 +296,7 @@ class _ReservationScreenState extends State<ReservationScreen> {
                   const Spacer(),
                   Text(
                     _guestCount == 1 ? '1 Guest' : '$_guestCount Guests',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.grey[600],
-                    ),
+                    style: TextStyle(fontSize: 16, color: Colors.grey[600]),
                   ),
                 ],
               ),
@@ -340,3 +324,5 @@ class _ReservationScreenState extends State<ReservationScreen> {
     );
   }
 }
+
+// Customer reservation UI completed
