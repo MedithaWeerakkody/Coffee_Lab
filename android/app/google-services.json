@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "712704718293",
+    "project_id": "coffee-lab-6b2d2",
+    "storage_bucket": "coffee-lab-6b2d2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:712704718293:android:fbe0f768550b7ec8dd395c",
+        "android_client_info": {
+          "package_name": "com.example.coffee_lab"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB-CgtFPkQgsaTWNpYk7ha_RJHpL_E4C3I"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

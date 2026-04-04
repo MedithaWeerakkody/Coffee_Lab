@@ -1,0 +1,100 @@
+[
+  {
+    "name": "Espresso",
+    "price": 2.50,
+    "description": "Strong black coffee shot",
+    "imageUrl": "https://images.unsplash.com/photo-1545665277-5937750a7c1b?ixlib=rb-4.0.3",
+    "category": "Coffee"
+  },
+  {
+    "name": "Cappuccino",
+    "price": 3.50,
+    "description": "Espresso with steamed milk foam",
+    "imageUrl": "https://images.unsplash.com/photo-1572442388796-11668a67e53d?ixlib=rb-4.0.3",
+    "category": "Coffee"
+  },
+  {
+    "name": "Latte",
+    "price": 4.00,
+    "description": "Espresso with steamed milk",
+    "imageUrl": "https://images.unsplash.com/photo-1570968915860-54d5c301fa9f?ixlib=rb-4.0.3",
+    "category": "Coffee"
+  },
+  {
+    "name": "Americano",
+    "price": 3.00,
+    "description": "Espresso with hot water",
+    "imageUrl": "https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?ixlib=rb-4.0.3",
+    "category": "Coffee"
+  },
+  {
+    "name": "Mocha",
+    "price": 4.50,
+    "description": "Espresso with chocolate and steamed milk",
+    "imageUrl": "https://images.unsplash.com/photo-1578662996442-48f60103fc96?ixlib=rb-4.0.3",
+    "category": "Coffee"
+  },
+  {
+    "name": "Croissant",
+    "price": 2.50,
+    "description": "Buttery, flaky pastry",
+    "imageUrl": "https://images.unsplash.com/photo-1555507036-ab794f575db6?ixlib=rb-4.0.3",
+    "category": "Pastry"
+  },
+  {
+    "name": "Blueberry Muffin",
+    "price": 3.00,
+    "description": "Fresh blueberry muffin",
+    "imageUrl": "https://images.unsplash.com/photo-1607958996333-41aef7caefaa?ixlib=rb-4.0.3",
+    "category": "Pastry"
+  },
+  {
+    "name": "Danish Pastry",
+    "price": 3.50,
+    "description": "Sweet Danish with fruit",
+    "imageUrl": "https://images.unsplash.com/photo-1558961363-fa8fdf82db35?ixlib=rb-4.0.3",
+    "category": "Pastry"
+  },
+  {
+    "name": "Chocolate Cake",
+    "price": 5.50,
+    "description": "Rich chocolate cake slice",
+    "imageUrl": "https://images.unsplash.com/photo-1578985545062-69928b1d9587?ixlib=rb-4.0.3",
+    "category": "Dessert"
+  },
+  {
+    "name": "Cheesecake",
+    "price": 6.00,
+    "description": "New York style cheesecake",
+    "imageUrl": "https://images.unsplash.com/photo-1567306226416-28f0efdc88ce?ixlib=rb-4.0.3",
+    "category": "Dessert"
+  },
+  {
+    "name": "Tiramisu",
+    "price": 6.50,
+    "description": "Italian coffee-flavored dessert",
+    "imageUrl": "https://images.unsplash.com/photo-1571877227200-a0d98ea607e9?ixlib=rb-4.0.3",
+    "category": "Dessert"
+  },
+  {
+    "name": "Caesar Salad",
+    "price": 8.50,
+    "description": "Fresh romaine lettuce with Caesar dressing",
+    "imageUrl": "https://images.unsplash.com/photo-1551248429-40975aa4de74?ixlib=rb-4.0.3",
+    "category": "Salad"
+  },
+  {
+    "name": "Greek Salad",
+    "price": 9.00,
+    "description": "Mediterranean salad with feta cheese",
+    "imageUrl": "https://images.unsplash.com/photo-1540420773420-3366772f4999?ixlib=rb-4.0.3",
+    "category": "Salad"
+  },
+  {
+    "name": "Garden Salad",
+    "price": 7.50,
+    "description": "Mixed greens with fresh vegetables",
+    "imageUrl": "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?ixlib=rb-4.0.3",
+    "category": "Salad"
+  }
+]

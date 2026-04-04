@@ -1,0 +1,87 @@
+import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:provider/provider.dart';
+import 'firebase_options.dart';
+import 'screens/splash_screen.dart';
+import 'screens/auth_screen.dart';
+import 'screens/home_screen.dart';
+import 'screens/cart_screen.dart';
+import 'screens/reservation_screen.dart';
+import 'screens/payment_screen.dart';
+import 'screens/history_screen.dart';
+import 'services/cart_provider.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  try {
+    // Initialize Firebase - required for authentication
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    print('Firebase initialized successfully');
+
+    // Small delay to ensure Firebase is fully ready
+    await Future.delayed(const Duration(milliseconds: 100));
+  } catch (e) {
+    print('Firebase initialization error: $e');
+    // Continue anyway - show user a proper error message
+  }
+
+  runApp(const CoffeeLab());
+}
+
+class CoffeeLab extends StatelessWidget {
+  const CoffeeLab({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MultiProvider(
+      providers: [ChangeNotifierProvider(create: (_) => CartProvider())],
+      child: MaterialApp(
+        title: 'Coffee Lab',
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          primarySwatch: Colors.brown,
+          primaryColor: const Color(0xFF795548),
+          colorScheme: ColorScheme.fromSeed(
+            seedColor: const Color(0xFF795548),
+            brightness: Brightness.light,
+          ),
+          appBarTheme: const AppBarTheme(
+            backgroundColor: Color(0xFF795548),
+            foregroundColor: Colors.white,
+            elevation: 2,
+          ),
+          elevatedButtonTheme: ElevatedButtonThemeData(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF795548),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+          ),
+          inputDecorationTheme: InputDecorationTheme(
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: Color(0xFF795548), width: 2),
+            ),
+          ),
+        ),
+        initialRoute: '/',
+        routes: {
+          '/': (context) => const SplashScreen(),
+          '/auth': (context) => const AuthScreen(),
+          '/home': (context) => const HomeScreen(),
+          '/cart': (context) => const CartScreen(),
+          '/reservation': (context) => const ReservationScreen(),
+          '/payment': (context) => const PaymentScreen(),
+          '/history': (context) => const HistoryScreen(),
+        },
+      ),
+    );
+  }
+}
