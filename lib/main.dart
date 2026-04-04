@@ -1,31 +1,30 @@
+import 'package:coffee_lab/screens/Role%20selection%20screen.dart';
+import 'package:coffee_lab/screens/splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
 import 'firebase_options.dart';
-import 'screens/splash_screen.dart';
-import 'screens/auth_screen.dart';
+import 'screens/Role selection screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/cart_screen.dart';
 import 'screens/reservation_screen.dart';
 import 'screens/payment_screen.dart';
 import 'screens/history_screen.dart';
+import 'screens/Admin login screen.dart';
+import 'screens/AdminMainScreen.dart';
 import 'services/cart_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   try {
-    // Initialize Firebase - required for authentication
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
     print('Firebase initialized successfully');
-
-    // Small delay to ensure Firebase is fully ready
     await Future.delayed(const Duration(milliseconds: 100));
   } catch (e) {
     print('Firebase initialization error: $e');
-    // Continue anyway - show user a proper error message
   }
 
   runApp(const CoffeeLab());
@@ -74,12 +73,14 @@ class CoffeeLab extends StatelessWidget {
         initialRoute: '/',
         routes: {
           '/': (context) => const SplashScreen(),
-          '/auth': (context) => const AuthScreen(),
+          '/auth': (context) => const RoleSelectionScreen(),
           '/home': (context) => const HomeScreen(),
           '/cart': (context) => const CartScreen(),
           '/reservation': (context) => const ReservationScreen(),
           '/payment': (context) => const PaymentScreen(),
           '/history': (context) => const HistoryScreen(),
+          '/admin-login': (context) => const AdminLoginScreen(),
+          '/admin': (context) => AdminMainScreen(),
         },
       ),
     );
