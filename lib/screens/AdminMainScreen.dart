@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'Admin dashboard screen.dart';
-import 'Admin orders screen.dart';
-import 'Admin menu screen.dart';
+import 'Admindashboardscreen.dart';
+import 'Adminordersscreen.dart';
+import 'Adminmenuscreen.dart';
 import 'AdminStockScreen.dart';
-import 'Admin reservations screen.dart';
-import 'Admin login screen.dart';
+import 'Adminreservationsscreen.dart';
 
 class AdminMainScreen extends StatefulWidget {
   const AdminMainScreen({super.key});
@@ -56,10 +55,7 @@ class _AdminMainScreenState extends State<AdminMainScreen> {
             onPressed: () async {
               await FirebaseAuth.instance.signOut();
               if (mounted) {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (_) => const AdminLoginScreen()),
-                );
+                Navigator.pushReplacementNamed(context, '/auth');
               }
             },
           ),

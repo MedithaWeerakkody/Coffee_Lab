@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../services/auth_service.dart';
 import '../models/user.dart';
+import 'AdminMainScreen.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -9,22 +11,26 @@ class AuthScreen extends StatefulWidget {
   State<AuthScreen> createState() => _AuthScreenState();
 }
 
-class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
+class _AuthScreenState extends State<AuthScreen>
+    with TickerProviderStateMixin {
   final PageController _pageController = PageController();
-  late AnimationController _fadeController;
-  late Animation<double> _fadeAnimation;
+  late final AnimationController _fadeController;
+  late final Animation<double> _fadeAnimation;
 
   @override
   void initState() {
     super.initState();
+
     _fadeController = AnimationController(
       duration: const Duration(milliseconds: 300),
       vsync: this,
     );
+
     _fadeAnimation = Tween<double>(
       begin: 0.0,
       end: 1.0,
     ).animate(_fadeController);
+
     _fadeController.forward();
   }
 
@@ -51,7 +57,10 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [Color(0xFFF5F5F5), Color(0xFFE0E0E0)],
+            colors: [
+              Color(0xFFF5F5F5),
+              Color(0xFFE0E0E0),
+            ],
           ),
         ),
         child: SafeArea(
@@ -82,12 +91,14 @@ class _LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<_LoginPage> {
-  final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+
+  final AuthService _authService = AuthService();
+
   bool _isLoading = false;
   bool _obscurePassword = true;
-  final AuthService _authService = AuthService();
 
   @override
   void dispose() {
@@ -96,26 +107,58 @@ class _LoginPageState extends State<_LoginPage> {
     super.dispose();
   }
 
-  void _login() async {
+  Future<void> _login() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
 
     try {
-      AppUser? user = await _authService.signInWithEmailAndPassword(
+      final AppUser? user = await _authService.signInWithEmailAndPassword(
         _emailController.text.trim(),
-        _passwordController.text,
+        _passwordController.text.trim(),
       );
 
-      if (user != null && mounted) {
-        _showSuccessSnackBar('Welcome back, ${user.name}!');
-        await Future.delayed(const Duration(milliseconds: 500));
-        Navigator.of(context).pushReplacementNamed('/home');
+      if (user == null) {
+        throw Exception('Login failed. Please try again.');
+      }
+
+      final firebaseUser = FirebaseAuth.instance.currentUser;
+      if (firebaseUser == null) {
+        throw Exception('Could not get logged in user.');
+      }
+
+      final String role = await _authService.getUserRole(firebaseUser.uid);
+
+      print('LOGIN UID: ${firebaseUser.uid}');
+      print('APP USER ROLE: ${user.role}');
+      print('FIRESTORE ROLE: $role');
+
+      if (!mounted) return;
+
+      _showSuccessSnackBar('Welcome back, ${user.name}!');
+
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      if (!mounted) return;
+
+      final normalizedRole = role.trim().toLowerCase();
+
+      if (normalizedRole == 'admin') {
+        // Navigate directly to AdminMainScreen to avoid named-route generator issues
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(builder: (_) => const AdminMainScreen()),
+          (route) => false,
+        );
+      } else {
+        Navigator.of(context)
+            .pushNamedAndRemoveUntil('/home', (route) => false);
       }
     } catch (e) {
       _showErrorSnackBar(e.toString().replaceAll('Exception: ', ''));
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -130,7 +173,9 @@ class _LoginPageState extends State<_LoginPage> {
           ],
         ),
         backgroundColor: Colors.red[600],
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
         behavior: SnackBarBehavior.floating,
         duration: const Duration(seconds: 4),
       ),
@@ -148,7 +193,9 @@ class _LoginPageState extends State<_LoginPage> {
           ],
         ),
         backgroundColor: Colors.green[600],
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
         behavior: SnackBarBehavior.floating,
         duration: const Duration(seconds: 2),
       ),
@@ -164,32 +211,25 @@ class _LoginPageState extends State<_LoginPage> {
         child: Column(
           children: [
             const SizedBox(height: 40),
-
-            // Logo and Title
             _buildHeader(),
-
             const SizedBox(height: 50),
-
-            // Email Field
             _buildTextField(
               controller: _emailController,
               label: 'Email Address',
               icon: Icons.email_outlined,
               keyboardType: TextInputType.emailAddress,
               validator: (value) {
-                if (value?.isEmpty ?? true) return 'Please enter your email';
-                if (!RegExp(
-                  r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
-                ).hasMatch(value!)) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Please enter your email';
+                }
+                if (!RegExp(r'^[\w\-.]+@([\w-]+\.)+[\w-]{2,4}$')
+                    .hasMatch(value.trim())) {
                   return 'Please enter a valid email';
                 }
                 return null;
               },
             ),
-
             const SizedBox(height: 20),
-
-            // Password Field
             _buildTextField(
               controller: _passwordController,
               label: 'Password',
@@ -199,18 +239,18 @@ class _LoginPageState extends State<_LoginPage> {
                 icon: Icon(
                   _obscurePassword ? Icons.visibility : Icons.visibility_off,
                 ),
-                onPressed: () =>
-                    setState(() => _obscurePassword = !_obscurePassword),
+                onPressed: () {
+                  setState(() => _obscurePassword = !_obscurePassword);
+                },
               ),
               validator: (value) {
-                if (value?.isEmpty ?? true) return 'Please enter your password';
+                if (value == null || value.isEmpty) {
+                  return 'Please enter your password';
+                }
                 return null;
               },
             ),
-
             const SizedBox(height: 12),
-
-            // Forgot Password Link
             Align(
               alignment: Alignment.centerRight,
               child: TextButton(
@@ -224,19 +264,13 @@ class _LoginPageState extends State<_LoginPage> {
                 ),
               ),
             ),
-
             const SizedBox(height: 30),
-
-            // Login Button
             _buildPrimaryButton(
               text: 'Sign In',
               onPressed: _isLoading ? null : _login,
               isLoading: _isLoading,
             ),
-
             const SizedBox(height: 30),
-
-            // Sign Up Link
             _buildBottomLink(
               text: "Don't have an account? ",
               linkText: 'Sign Up',
@@ -265,7 +299,11 @@ class _LoginPageState extends State<_LoginPage> {
               ),
             ],
           ),
-          child: const Icon(Icons.local_cafe, size: 40, color: Colors.white),
+          child: const Icon(
+            Icons.local_cafe,
+            size: 40,
+            color: Colors.white,
+          ),
         ),
         const SizedBox(height: 24),
         const Text(
@@ -279,7 +317,10 @@ class _LoginPageState extends State<_LoginPage> {
         const SizedBox(height: 8),
         Text(
           'Sign in to continue your coffee journey',
-          style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+          style: TextStyle(
+            fontSize: 16,
+            color: Colors.grey[600],
+          ),
         ),
       ],
     );
@@ -325,11 +366,17 @@ class _LoginPageState extends State<_LoginPage> {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Color(0xFF795548), width: 2),
+            borderSide: const BorderSide(
+              color: Color(0xFF795548),
+              width: 2,
+            ),
           ),
           errorBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Colors.red, width: 1),
+            borderSide: const BorderSide(
+              color: Colors.red,
+              width: 1,
+            ),
           ),
           filled: true,
           fillColor: Colors.white,
@@ -353,7 +400,10 @@ class _LoginPageState extends State<_LoginPage> {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
         gradient: const LinearGradient(
-          colors: [Color(0xFF8D6E63), Color(0xFF795548)],
+          colors: [
+            Color(0xFF8D6E63),
+            Color(0xFF795548),
+          ],
         ),
         boxShadow: [
           BoxShadow(
@@ -401,7 +451,13 @@ class _LoginPageState extends State<_LoginPage> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Text(text, style: TextStyle(color: Colors.grey[600], fontSize: 16)),
+        Text(
+          text,
+          style: TextStyle(
+            color: Colors.grey[600],
+            fontSize: 16,
+          ),
+        ),
         GestureDetector(
           onTap: onTap,
           child: Text(
@@ -428,16 +484,19 @@ class _RegisterPage extends StatefulWidget {
 }
 
 class _RegisterPageState extends State<_RegisterPage> {
-  final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-  final _confirmPasswordController = TextEditingController();
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
+
+  final AuthService _authService = AuthService();
+
   bool _isLoading = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _agreeToTerms = false;
-  final AuthService _authService = AuthService();
 
   @override
   void dispose() {
@@ -448,8 +507,9 @@ class _RegisterPageState extends State<_RegisterPage> {
     super.dispose();
   }
 
-  void _register() async {
+  Future<void> _register() async {
     if (!_formKey.currentState!.validate()) return;
+
     if (!_agreeToTerms) {
       _showErrorSnackBar('Please agree to the Terms and Conditions');
       return;
@@ -458,7 +518,7 @@ class _RegisterPageState extends State<_RegisterPage> {
     setState(() => _isLoading = true);
 
     try {
-      AppUser? user = await _authService.registerWithEmailPassword(
+      final AppUser? user = await _authService.registerWithEmailPassword(
         _emailController.text.trim(),
         _passwordController.text,
         _nameController.text.trim(),
@@ -468,25 +528,20 @@ class _RegisterPageState extends State<_RegisterPage> {
         _showSuccessSnackBar(
           'Account created successfully! Welcome, ${user.name}!',
         );
-        await Future.delayed(const Duration(milliseconds: 1000));
-        Navigator.of(context).pushReplacementNamed('/home');
+
+        await Future.delayed(const Duration(milliseconds: 800));
+
+        if (!mounted) return;
+
+        Navigator.of(context)
+            .pushNamedAndRemoveUntil('/home', (route) => false);
       }
     } catch (e) {
-      print('Registration error details: $e');
-      String errorMessage = e.toString().replaceAll('Exception: ', '');
-
-      // Show more specific error message
-      if (errorMessage.contains('CONFIGURATION_NOT_FOUND')) {
-        errorMessage = 'Firebase configuration error. Please contact support.';
-      } else if (errorMessage.contains('network-request-failed')) {
-        errorMessage = 'Network error. Please check your internet connection.';
-      } else if (errorMessage.contains('too-many-requests')) {
-        errorMessage = 'Too many attempts. Please try again later.';
-      }
-
-      _showErrorSnackBar(errorMessage);
+      _showErrorSnackBar(e.toString().replaceAll('Exception: ', ''));
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -501,7 +556,9 @@ class _RegisterPageState extends State<_RegisterPage> {
           ],
         ),
         backgroundColor: Colors.red[600],
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
         behavior: SnackBarBehavior.floating,
         duration: const Duration(seconds: 4),
       ),
@@ -519,7 +576,9 @@ class _RegisterPageState extends State<_RegisterPage> {
           ],
         ),
         backgroundColor: Colors.green[600],
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
         behavior: SnackBarBehavior.floating,
         duration: const Duration(seconds: 3),
       ),
@@ -535,48 +594,40 @@ class _RegisterPageState extends State<_RegisterPage> {
         child: Column(
           children: [
             const SizedBox(height: 20),
-
-            // Header
             _buildHeader(),
-
             const SizedBox(height: 40),
-
-            // Name Field
             _buildTextField(
               controller: _nameController,
               label: 'Full Name',
               icon: Icons.person_outline,
               validator: (value) {
-                if (value?.isEmpty ?? true)
+                if (value == null || value.trim().isEmpty) {
                   return 'Please enter your full name';
-                if (value!.length < 2)
+                }
+                if (value.trim().length < 2) {
                   return 'Name must be at least 2 characters';
+                }
                 return null;
               },
             ),
-
             const SizedBox(height: 20),
-
-            // Email Field
             _buildTextField(
               controller: _emailController,
               label: 'Email Address',
               icon: Icons.email_outlined,
               keyboardType: TextInputType.emailAddress,
               validator: (value) {
-                if (value?.isEmpty ?? true) return 'Please enter your email';
-                if (!RegExp(
-                  r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
-                ).hasMatch(value!)) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'Please enter your email';
+                }
+                if (!RegExp(r'^[\w\-.]+@([\w-]+\.)+[\w-]{2,4}$')
+                    .hasMatch(value.trim())) {
                   return 'Please enter a valid email';
                 }
                 return null;
               },
             ),
-
             const SizedBox(height: 20),
-
-            // Password Field with Real-time Validation
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -595,22 +646,21 @@ class _RegisterPageState extends State<_RegisterPage> {
                   child: TextFormField(
                     controller: _passwordController,
                     obscureText: _obscurePassword,
-                    onChanged: (value) => setState(
-                      () {},
-                    ), // Trigger rebuild for real-time feedback
+                    onChanged: (_) => setState(() {}),
                     validator: (value) {
-                      if (value?.isEmpty ?? true)
+                      if (value == null || value.isEmpty) {
                         return 'Please enter a password';
-                      if (!_authService.isValidPassword(value!)) {
+                      }
+                      if (!_authService.isValidPassword(value)) {
                         return 'Password does not meet security requirements';
                       }
                       return null;
                     },
                     decoration: InputDecoration(
                       labelText: 'Password',
-                      prefixIcon: Icon(
+                      prefixIcon: const Icon(
                         Icons.lock_outline,
-                        color: const Color(0xFF795548),
+                        color: Color(0xFF795548),
                       ),
                       suffixIcon: IconButton(
                         icon: Icon(
@@ -618,9 +668,9 @@ class _RegisterPageState extends State<_RegisterPage> {
                               ? Icons.visibility
                               : Icons.visibility_off,
                         ),
-                        onPressed: () => setState(
-                          () => _obscurePassword = !_obscurePassword,
-                        ),
+                        onPressed: () {
+                          setState(() => _obscurePassword = !_obscurePassword);
+                        },
                       ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -653,17 +703,13 @@ class _RegisterPageState extends State<_RegisterPage> {
                     ),
                   ),
                 ),
-
                 if (_passwordController.text.isNotEmpty) ...[
                   const SizedBox(height: 8),
                   _buildPasswordRequirements(_passwordController.text),
                 ],
               ],
             ),
-
             const SizedBox(height: 20),
-
-            // Confirm Password Field
             _buildTextField(
               controller: _confirmPasswordController,
               label: 'Confirm Password',
@@ -675,34 +721,40 @@ class _RegisterPageState extends State<_RegisterPage> {
                       ? Icons.visibility
                       : Icons.visibility_off,
                 ),
-                onPressed: () => setState(
-                  () => _obscureConfirmPassword = !_obscureConfirmPassword,
-                ),
+                onPressed: () {
+                  setState(
+                    () =>
+                        _obscureConfirmPassword = !_obscureConfirmPassword,
+                  );
+                },
               ),
               validator: (value) {
-                if (value?.isEmpty ?? true)
+                if (value == null || value.isEmpty) {
                   return 'Please confirm your password';
-                if (value != _passwordController.text)
+                }
+                if (value != _passwordController.text) {
                   return 'Passwords do not match';
+                }
                 return null;
               },
             ),
-
             const SizedBox(height: 20),
-
-            // Terms and Conditions Checkbox
             Row(
               children: [
                 Checkbox(
                   value: _agreeToTerms,
-                  onChanged: (value) =>
-                      setState(() => _agreeToTerms = value ?? false),
+                  onChanged: (value) {
+                    setState(() => _agreeToTerms = value ?? false);
+                  },
                   activeColor: const Color(0xFF795548),
                 ),
                 Expanded(
                   child: RichText(
                     text: const TextSpan(
-                      style: TextStyle(color: Colors.black87, fontSize: 14),
+                      style: TextStyle(
+                        color: Colors.black87,
+                        fontSize: 14,
+                      ),
                       children: [
                         TextSpan(text: 'I agree to the '),
                         TextSpan(
@@ -726,21 +778,15 @@ class _RegisterPageState extends State<_RegisterPage> {
                 ),
               ],
             ),
-
             const SizedBox(height: 30),
-
-            // Register Button
             _buildPrimaryButton(
               text: 'Create Account',
               onPressed: _isLoading ? null : _register,
               isLoading: _isLoading,
             ),
-
             const SizedBox(height: 30),
-
-            // Sign In Link
             _buildBottomLink(
-              text: "Already have an account? ",
+              text: 'Already have an account? ',
               linkText: 'Sign In',
               onTap: () => widget.onNavigate(0),
             ),
@@ -767,7 +813,11 @@ class _RegisterPageState extends State<_RegisterPage> {
               ),
             ],
           ),
-          child: const Icon(Icons.person_add, size: 40, color: Colors.white),
+          child: const Icon(
+            Icons.person_add,
+            size: 40,
+            color: Colors.white,
+          ),
         ),
         const SizedBox(height: 24),
         const Text(
@@ -781,7 +831,10 @@ class _RegisterPageState extends State<_RegisterPage> {
         const SizedBox(height: 8),
         Text(
           'Join our coffee community today',
-          style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+          style: TextStyle(
+            fontSize: 16,
+            color: Colors.grey[600],
+          ),
         ),
       ],
     );
@@ -827,11 +880,17 @@ class _RegisterPageState extends State<_RegisterPage> {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Color(0xFF795548), width: 2),
+            borderSide: const BorderSide(
+              color: Color(0xFF795548),
+              width: 2,
+            ),
           ),
           errorBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Colors.red, width: 1),
+            borderSide: const BorderSide(
+              color: Colors.red,
+              width: 1,
+            ),
           ),
           filled: true,
           fillColor: Colors.white,
@@ -855,7 +914,10 @@ class _RegisterPageState extends State<_RegisterPage> {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
         gradient: const LinearGradient(
-          colors: [Color(0xFF8D6E63), Color(0xFF795548)],
+          colors: [
+            Color(0xFF8D6E63),
+            Color(0xFF795548),
+          ],
         ),
         boxShadow: [
           BoxShadow(
@@ -903,7 +965,13 @@ class _RegisterPageState extends State<_RegisterPage> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Text(text, style: TextStyle(color: Colors.grey[600], fontSize: 16)),
+        Text(
+          text,
+          style: TextStyle(
+            color: Colors.grey[600],
+            fontSize: 16,
+          ),
+        ),
         GestureDetector(
           onTap: onTap,
           child: Text(
@@ -919,13 +987,13 @@ class _RegisterPageState extends State<_RegisterPage> {
     );
   }
 
-  // Password requirements widget with real-time validation
   Widget _buildPasswordRequirements(String password) {
-    final hasMinLength = password.length >= 8;
-    final hasUpperCase = RegExp(r'[A-Z]').hasMatch(password);
-    final hasLowerCase = RegExp(r'[a-z]').hasMatch(password);
-    final hasNumber = RegExp(r'[0-9]').hasMatch(password);
-    final hasSpecialChar = RegExp(r'[!@#$%^&*(),.?":{}|<>]').hasMatch(password);
+    final bool hasMinLength = password.length >= 8;
+    final bool hasUpperCase = RegExp(r'[A-Z]').hasMatch(password);
+    final bool hasLowerCase = RegExp(r'[a-z]').hasMatch(password);
+    final bool hasNumber = RegExp(r'[0-9]').hasMatch(password);
+    final bool hasSpecialChar =
+        RegExp(r'[!@#$%^&*(),.?":{}|<>]').hasMatch(password);
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -976,7 +1044,8 @@ class _RegisterPageState extends State<_RegisterPage> {
               style: TextStyle(
                 fontSize: 12,
                 color: isValid ? Colors.green[700] : Colors.grey[600],
-                fontWeight: isValid ? FontWeight.w500 : FontWeight.normal,
+                fontWeight:
+                    isValid ? FontWeight.w500 : FontWeight.normal,
               ),
             ),
           ),
@@ -996,11 +1065,13 @@ class _ResetPasswordPage extends StatefulWidget {
 }
 
 class _ResetPasswordPageState extends State<_ResetPasswordPage> {
-  final _formKey = GlobalKey<FormState>();
-  final _emailController = TextEditingController();
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final TextEditingController _emailController = TextEditingController();
+
+  final AuthService _authService = AuthService();
+
   bool _isLoading = false;
   bool _emailSent = false;
-  final AuthService _authService = AuthService();
 
   @override
   void dispose() {
@@ -1008,19 +1079,24 @@ class _ResetPasswordPageState extends State<_ResetPasswordPage> {
     super.dispose();
   }
 
-  void _resetPassword() async {
+  Future<void> _resetPassword() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
 
     try {
       await _authService.resetPassword(_emailController.text.trim());
+
+      if (!mounted) return;
+
       setState(() => _emailSent = true);
       _showSuccessSnackBar('Password reset email sent successfully!');
     } catch (e) {
       _showErrorSnackBar(e.toString().replaceAll('Exception: ', ''));
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -1035,7 +1111,9 @@ class _ResetPasswordPageState extends State<_ResetPasswordPage> {
           ],
         ),
         backgroundColor: Colors.red[600],
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
         behavior: SnackBarBehavior.floating,
         duration: const Duration(seconds: 4),
       ),
@@ -1053,7 +1131,9 @@ class _ResetPasswordPageState extends State<_ResetPasswordPage> {
           ],
         ),
         backgroundColor: Colors.green[600],
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8),
+        ),
         behavior: SnackBarBehavior.floating,
         duration: const Duration(seconds: 3),
       ),
@@ -1067,14 +1147,9 @@ class _ResetPasswordPageState extends State<_ResetPasswordPage> {
       child: Column(
         children: [
           const SizedBox(height: 60),
-
-          // Header
           _buildHeader(),
-
           const SizedBox(height: 50),
-
           if (!_emailSent) ...[
-            // Reset Form
             Form(
               key: _formKey,
               child: Column(
@@ -1085,20 +1160,17 @@ class _ResetPasswordPageState extends State<_ResetPasswordPage> {
                     icon: Icons.email_outlined,
                     keyboardType: TextInputType.emailAddress,
                     validator: (value) {
-                      if (value?.isEmpty ?? true)
+                      if (value == null || value.trim().isEmpty) {
                         return 'Please enter your email';
-                      if (!RegExp(
-                        r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
-                      ).hasMatch(value!)) {
+                      }
+                      if (!RegExp(r'^[\w\-.]+@([\w-]+\.)+[\w-]{2,4}$')
+                          .hasMatch(value.trim())) {
                         return 'Please enter a valid email';
                       }
                       return null;
                     },
                   ),
-
                   const SizedBox(height: 30),
-
-                  // Reset Button
                   _buildPrimaryButton(
                     text: 'Send Reset Link',
                     onPressed: _isLoading ? null : _resetPassword,
@@ -1108,15 +1180,11 @@ class _ResetPasswordPageState extends State<_ResetPasswordPage> {
               ),
             ),
           ] else ...[
-            // Success Message
             _buildSuccessMessage(),
           ],
-
           const SizedBox(height: 30),
-
-          // Back to Login Link
           _buildBottomLink(
-            text: "Remember your password? ",
+            text: 'Remember your password? ',
             linkText: 'Sign In',
             onTap: () => widget.onNavigate(0),
           ),
@@ -1142,7 +1210,11 @@ class _ResetPasswordPageState extends State<_ResetPasswordPage> {
               ),
             ],
           ),
-          child: const Icon(Icons.lock_reset, size: 40, color: Colors.white),
+          child: const Icon(
+            Icons.lock_reset,
+            size: 40,
+            color: Colors.white,
+          ),
         ),
         const SizedBox(height: 24),
         const Text(
@@ -1156,7 +1228,10 @@ class _ResetPasswordPageState extends State<_ResetPasswordPage> {
         const SizedBox(height: 8),
         Text(
           'Enter your email to receive a reset link',
-          style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+          style: TextStyle(
+            fontSize: 16,
+            color: Colors.grey[600],
+          ),
           textAlign: TextAlign.center,
         ),
       ],
@@ -1173,7 +1248,11 @@ class _ResetPasswordPageState extends State<_ResetPasswordPage> {
       ),
       child: Column(
         children: [
-          Icon(Icons.mark_email_read, size: 60, color: Colors.green[600]),
+          Icon(
+            Icons.mark_email_read,
+            size: 60,
+            color: Colors.green[600],
+          ),
           const SizedBox(height: 16),
           Text(
             'Reset Link Sent!',
@@ -1185,8 +1264,11 @@ class _ResetPasswordPageState extends State<_ResetPasswordPage> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Check your email for a link to reset your password. If it doesn\'t appear within a few minutes, check your spam folder.',
-            style: TextStyle(fontSize: 14, color: Colors.green[700]),
+            "Check your email for a link to reset your password. If it doesn't appear within a few minutes, check your spam folder.",
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.green[700],
+            ),
             textAlign: TextAlign.center,
           ),
         ],
@@ -1230,11 +1312,17 @@ class _ResetPasswordPageState extends State<_ResetPasswordPage> {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Color(0xFF795548), width: 2),
+            borderSide: const BorderSide(
+              color: Color(0xFF795548),
+              width: 2,
+            ),
           ),
           errorBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(12),
-            borderSide: const BorderSide(color: Colors.red, width: 1),
+            borderSide: const BorderSide(
+              color: Colors.red,
+              width: 1,
+            ),
           ),
           filled: true,
           fillColor: Colors.white,
@@ -1258,7 +1346,10 @@ class _ResetPasswordPageState extends State<_ResetPasswordPage> {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
         gradient: const LinearGradient(
-          colors: [Color(0xFF8D6E63), Color(0xFF795548)],
+          colors: [
+            Color(0xFF8D6E63),
+            Color(0xFF795548),
+          ],
         ),
         boxShadow: [
           BoxShadow(
@@ -1306,7 +1397,13 @@ class _ResetPasswordPageState extends State<_ResetPasswordPage> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        Text(text, style: TextStyle(color: Colors.grey[600], fontSize: 16)),
+        Text(
+          text,
+          style: TextStyle(
+            color: Colors.grey[600],
+            fontSize: 16,
+          ),
+        ),
         GestureDetector(
           onTap: onTap,
           child: Text(

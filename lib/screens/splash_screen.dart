@@ -95,12 +95,20 @@ class _SplashScreenState extends State<SplashScreen>
     await Future.delayed(const Duration(seconds: 3));
 
     if (mounted) {
-      User? user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        Navigator.of(context).pushReplacementNamed('/home');
-      } else {
-        Navigator.of(context).pushReplacementNamed('/auth');
+      // Always require fresh sign-in when app restarts.
+      // If a user is still signed in, sign them out and show the auth screen.
+      final firebaseAuth = FirebaseAuth.instance;
+      try {
+        final User? user = firebaseAuth.currentUser;
+        if (user != null) {
+          await firebaseAuth.signOut();
+        }
+      } catch (e) {
+        // Log and continue to auth screen
+        print('Error signing out on startup: $e');
       }
+
+      Navigator.of(context).pushReplacementNamed('/auth');
     }
   }
 

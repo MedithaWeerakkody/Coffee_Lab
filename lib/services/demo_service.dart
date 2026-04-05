@@ -22,6 +22,7 @@ class DemoService {
       id: 'demo_user_123',
       name: 'Demo User',
       email: 'demo@cafeconnect.com',
+      role: 'customer',
     );
     _demoFirebaseUser = DemoFirebaseUser();
   }
