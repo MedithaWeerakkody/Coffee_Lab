@@ -2,6 +2,8 @@
 
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import 'home_screen.dart'; // User interface එක සඳහා
+import 'AdminMainScreen.dart'; // Admin interface එක සඳහා (File name එක නිවැරදිදැයි පරීක්ෂා කරන්න)
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -30,7 +32,6 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
     _animationController.forward();
   }
 
-  // Navigate between Login, Register, and Reset Password pages
   void _navigateToPage(int page) {
     _pageController.animateToPage(
       page,
@@ -57,7 +58,6 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
             opacity: _fadeAnimation,
             child: PageView(
               controller: _pageController,
-              // Disable swiping to ensure navigation only via buttons
               physics: const NeverScrollableScrollPhysics(),
               children: [
                 _LoginPage(onNavigate: _navigateToPage),
@@ -72,7 +72,7 @@ class _AuthScreenState extends State<AuthScreen> with TickerProviderStateMixin {
   }
 }
 
-// Global Text Field Widget with Controller and Password Visibility Support
+// Global Text Field Widget
 Widget _buildTextField(
   String hint,
   IconData icon, {
@@ -89,7 +89,6 @@ Widget _buildTextField(
       hintText: hint,
       hintStyle: const TextStyle(color: Colors.white54),
       prefixIcon: Icon(icon, color: Colors.white70),
-      // Add eye icon only if it is a password field
       suffixIcon: isPassword
           ? IconButton(
               icon: Icon(
@@ -141,8 +140,9 @@ class _LoginPageState extends State<_LoginPage> {
   final TextEditingController _passwordController = TextEditingController();
   final AuthService _authService = AuthService();
   bool _isLoading = false;
-  bool _obscurePassword = true; // State for password visibility
+  bool _obscurePassword = true;
 
+  // Modified Login Logic with Role-Based Navigation
   void _login() async {
     setState(() => _isLoading = true);
     try {
@@ -150,8 +150,20 @@ class _LoginPageState extends State<_LoginPage> {
         _emailController.text.trim(),
         _passwordController.text,
       );
+
       if (user != null && mounted) {
-        Navigator.pushReplacementNamed(context, '/home');
+        // Checking user role for redirection
+        if (user.role == 'admin') {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const AdminMainScreen()),
+          );
+        } else {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const HomeScreen()),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -196,9 +208,8 @@ class _LoginPageState extends State<_LoginPage> {
             Icons.lock_outline,
             isPassword: true,
             obscureText: _obscurePassword,
-            onToggleVisibility: () {
-              setState(() => _obscurePassword = !_obscurePassword);
-            },
+            onToggleVisibility: () =>
+                setState(() => _obscurePassword = !_obscurePassword),
             controller: _passwordController,
           ),
           Align(
@@ -250,6 +261,7 @@ class _RegisterPageState extends State<_RegisterPage> {
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
 
+  // Modified Register Logic
   void _register() async {
     if (_passwordController.text != _confirmPasswordController.text) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -269,7 +281,11 @@ class _RegisterPageState extends State<_RegisterPage> {
         _nameController.text.trim(),
       );
       if (user != null && mounted) {
-        Navigator.pushReplacementNamed(context, '/home');
+        // Regular users navigate to Home screen after registration
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
+        );
       }
     } catch (e) {
       if (mounted) {
@@ -320,9 +336,8 @@ class _RegisterPageState extends State<_RegisterPage> {
             Icons.lock_outline,
             isPassword: true,
             obscureText: _obscurePassword,
-            onToggleVisibility: () {
-              setState(() => _obscurePassword = !_obscurePassword);
-            },
+            onToggleVisibility: () =>
+                setState(() => _obscurePassword = !_obscurePassword),
             controller: _passwordController,
           ),
           const SizedBox(height: 20),
@@ -331,11 +346,9 @@ class _RegisterPageState extends State<_RegisterPage> {
             Icons.lock_outline,
             isPassword: true,
             obscureText: _obscureConfirmPassword,
-            onToggleVisibility: () {
-              setState(
-                () => _obscureConfirmPassword = !_obscureConfirmPassword,
-              );
-            },
+            onToggleVisibility: () => setState(
+              () => _obscureConfirmPassword = !_obscureConfirmPassword,
+            ),
             controller: _confirmPasswordController,
           ),
           const SizedBox(height: 30),
@@ -444,7 +457,6 @@ class _ResetPasswordPageState extends State<_ResetPasswordPage> {
   }
 }
 
-// Helper Widget for Logo
 Widget _buildLogo() {
   return Container(
     padding: const EdgeInsets.all(20),
