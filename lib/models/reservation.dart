@@ -37,3 +37,5 @@ class Reservation {
     };
   }
 }
+
+//Reservation model code created
