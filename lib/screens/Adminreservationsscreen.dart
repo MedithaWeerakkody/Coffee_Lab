@@ -10,8 +10,7 @@ class AdminReservationsScreen extends StatefulWidget {
       _AdminReservationsScreenState();
 }
 
-class _AdminReservationsScreenState
-    extends State<AdminReservationsScreen> {
+class _AdminReservationsScreenState extends State<AdminReservationsScreen> {
   final _adminService = AdminService();
   String _filter = 'All';
 
@@ -29,48 +28,51 @@ class _AdminReservationsScreenState
         backgroundColor: _brown,
         foregroundColor: Colors.white,
         elevation: 0,
-        title: const Text('Reservations',
-            style: TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.bold)),
+        title: const Text(
+          'Reservations',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
       ),
       body: Column(
         children: [
           // Filter tabs
           Container(
             color: Colors.white,
-            padding: const EdgeInsets.symmetric(
-                horizontal: 16, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             child: Row(
               children: _filters
-                  .map((f) => GestureDetector(
-                        onTap: () =>
-                            setState(() => _filter = f),
-                        child: Container(
-                          margin:
-                              const EdgeInsets.only(right: 8),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 14, vertical: 6),
-                          decoration: BoxDecoration(
+                  .map(
+                    (f) => GestureDetector(
+                      onTap: () => setState(() => _filter = f),
+                      child: Container(
+                        margin: const EdgeInsets.only(right: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: _filter == f
+                              ? _brown
+                              : const Color(0xFFF5F0EB),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          f,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
                             color: _filter == f
-                                ? _brown
-                                : const Color(0xFFF5F0EB),
-                            borderRadius:
-                                BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            f,
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                              color: _filter == f
-                                  ? Colors.white
-                                  : Colors.grey.shade600,
-                            ),
+                                ? Colors.white
+                                : Colors.grey.shade600,
                           ),
                         ),
-                      ))
+                      ),
+                    ),
+                  )
                   .toList(),
             ),
           ),
@@ -80,34 +82,36 @@ class _AdminReservationsScreenState
             child: StreamBuilder<List<Reservation>>(
               stream: _adminService.getAllReservations(),
               builder: (context, snapshot) {
-                if (snapshot.connectionState ==
-                    ConnectionState.waiting) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
                   return const Center(
-                      child: CircularProgressIndicator(
-                          color: Color(0xFF7C3A2E)));
+                    child: CircularProgressIndicator(color: Color(0xFF7C3A2E)),
+                  );
                 }
 
                 var reservations = snapshot.data ?? [];
                 if (_filter != 'All') {
                   reservations = reservations
-                      .where((r) =>
-                          r.status.toLowerCase() ==
-                          _filter.toLowerCase())
+                      .where(
+                        (r) => r.status.toLowerCase() == _filter.toLowerCase(),
+                      )
                       .toList();
                 }
 
                 if (reservations.isEmpty) {
                   return Center(
                     child: Column(
-                      mainAxisAlignment:
-                          MainAxisAlignment.center,
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Icon(Icons.event_seat_outlined,
-                            color: Colors.grey, size: 48),
+                        const Icon(
+                          Icons.event_seat_outlined,
+                          color: Colors.grey,
+                          size: 48,
+                        ),
                         const SizedBox(height: 12),
-                        Text('No $_filter reservations',
-                            style: const TextStyle(
-                                color: Colors.grey)),
+                        Text(
+                          'No $_filter reservations',
+                          style: const TextStyle(color: Colors.grey),
+                        ),
                       ],
                     ),
                   );
@@ -116,16 +120,17 @@ class _AdminReservationsScreenState
                 return ListView.builder(
                   padding: const EdgeInsets.all(16),
                   itemCount: reservations.length,
-                  itemBuilder: (_, i) =>
-                      _ReservationCard(
-                        reservation: reservations[i],
-                        onConfirm: () =>
-                            _adminService.updateReservationStatus(
-                                reservations[i].id, 'Confirmed'),
-                        onCancel: () =>
-                            _adminService.updateReservationStatus(
-                                reservations[i].id, 'Cancelled'),
-                      ),
+                  itemBuilder: (_, i) => _ReservationCard(
+                    reservation: reservations[i],
+                    onConfirm: () => _adminService.updateReservationStatus(
+                      reservations[i].id,
+                      'Confirmed',
+                    ),
+                    onCancel: () => _adminService.updateReservationStatus(
+                      reservations[i].id,
+                      'Cancelled',
+                    ),
+                  ),
                 );
               },
             ),
@@ -152,8 +157,7 @@ class _ReservationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isPending =
-        reservation.status.toLowerCase() == 'pending';
+    final isPending = reservation.status.toLowerCase() == 'pending';
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -196,7 +200,9 @@ class _ReservationCard extends StatelessWidget {
                       Text(
                         _monthAbbrev(reservation.date.month),
                         style: const TextStyle(
-                            fontSize: 10, color: _brownLight),
+                          fontSize: 10,
+                          color: _brownLight,
+                        ),
                       ),
                     ],
                   ),
@@ -206,8 +212,7 @@ class _ReservationCard extends StatelessWidget {
                 // Info
                 Expanded(
                   child: Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         'User: ...${reservation.userId.substring(reservation.userId.length > 8 ? reservation.userId.length - 8 : 0)}',
@@ -220,21 +225,33 @@ class _ReservationCard extends StatelessWidget {
                       const SizedBox(height: 3),
                       Row(
                         children: [
-                          const Icon(Icons.access_time,
-                              size: 12, color: Colors.grey),
+                          const Icon(
+                            Icons.access_time,
+                            size: 12,
+                            color: Colors.grey,
+                          ),
                           const SizedBox(width: 4),
-                          Text(reservation.time,
-                              style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey)),
+                          Text(
+                            reservation.time,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey,
+                            ),
+                          ),
                           const SizedBox(width: 12),
-                          const Icon(Icons.people_outline,
-                              size: 12, color: Colors.grey),
+                          const Icon(
+                            Icons.people_outline,
+                            size: 12,
+                            color: Colors.grey,
+                          ),
                           const SizedBox(width: 4),
-                          Text('${reservation.guests} guests',
-                              style: const TextStyle(
-                                  fontSize: 12,
-                                  color: Colors.grey)),
+                          Text(
+                            '${reservation.guests} guests',
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey,
+                            ),
+                          ),
                         ],
                       ),
                     ],
@@ -249,8 +266,7 @@ class _ReservationCard extends StatelessWidget {
           if (isPending) ...[
             const Divider(height: 1, thickness: 0.5),
             Padding(
-              padding: const EdgeInsets.symmetric(
-                  horizontal: 14, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               child: Row(
                 children: [
                   Expanded(
@@ -258,17 +274,16 @@ class _ReservationCard extends StatelessWidget {
                       onPressed: onCancel,
                       style: OutlinedButton.styleFrom(
                         foregroundColor: Colors.red,
-                        side: const BorderSide(
-                            color: Colors.red, width: 0.5),
+                        side: const BorderSide(color: Colors.red, width: 0.5),
                         shape: RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(8),
                         ),
-                        padding: const EdgeInsets.symmetric(
-                            vertical: 8),
+                        padding: const EdgeInsets.symmetric(vertical: 8),
                       ),
-                      child: const Text('Decline',
-                          style: TextStyle(fontSize: 12)),
+                      child: const Text(
+                        'Decline',
+                        style: TextStyle(fontSize: 12),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -279,14 +294,14 @@ class _ReservationCard extends StatelessWidget {
                         backgroundColor: _brown,
                         foregroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(8),
                         ),
-                        padding: const EdgeInsets.symmetric(
-                            vertical: 8),
+                        padding: const EdgeInsets.symmetric(vertical: 8),
                       ),
-                      child: const Text('Confirm',
-                          style: TextStyle(fontSize: 12)),
+                      child: const Text(
+                        'Confirm',
+                        style: TextStyle(fontSize: 12),
+                      ),
                     ),
                   ),
                 ],
@@ -300,8 +315,18 @@ class _ReservationCard extends StatelessWidget {
 
   String _monthAbbrev(int month) {
     const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
     ];
     return months[month - 1];
   }
@@ -332,15 +357,20 @@ class _StatusBadge extends StatelessWidget {
         text = const Color(0xFF383D41);
     }
     return Container(
-      padding:
-          const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-          color: bg, borderRadius: BorderRadius.circular(20)),
-      child: Text(status,
-          style: TextStyle(
-              color: text,
-              fontSize: 11,
-              fontWeight: FontWeight.w600)),
+        color: bg,
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        status,
+        style: TextStyle(
+          color: text,
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
     );
   }
 }
+// Admin reservation approval interface completed
