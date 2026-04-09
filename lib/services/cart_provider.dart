@@ -21,12 +21,14 @@ class CartProvider with ChangeNotifier {
     if (existingItemIndex >= 0) {
       _items[existingItemIndex].quantity++;
     } else {
-      _items.add(CartItem(
-        itemId: menuItem.id,
-        name: menuItem.name,
-        price: menuItem.price,
-        imageUrl: menuItem.imageUrl,
-      ));
+      _items.add(
+        CartItem(
+          itemId: menuItem.id,
+          name: menuItem.name,
+          price: menuItem.price,
+          imageUrl: menuItem.imageUrl,
+        ),
+      );
     }
     notifyListeners();
   }
