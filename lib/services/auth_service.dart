@@ -1,17 +1,36 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/user.dart';
 
 class AuthService {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  late FirebaseAuth _auth;
+  late FirebaseFirestore _firestore;
 
-  User? get currentUser => _auth.currentUser;
+  // Initialize Firebase authentication and Firestore instance
+  AuthService() {
+    try {
+      _auth = FirebaseAuth.instance;
+      _firestore = FirebaseFirestore.instance;
+      print('Firebase Auth and Firestore initialized successfully');
+    } catch (e) {
+      print('Firebase initialization error: $e');
+      throw Exception(
+        'Firebase services are not available. Please check your internet connection.',
+      );
+    }
+  }
 
-  Stream<User?> get authStateChanges => _auth.authStateChanges();
+  // Returns the currently logged-in user
+  User? get currentUser {
+    return _auth.currentUser;
+  }
 
-  bool get isSignedIn => _auth.currentUser != null;
+  // Stream to listen for authentication state changes (logged in/out)
+  Stream<User?> get authStateChanges {
+    return _auth.authStateChanges();
+  }
 
+  // Signs in an existing user with email and password
   Future<AppUser?> signInWithEmailAndPassword(
     String email,
     String password,
@@ -21,53 +40,38 @@ class AuthService {
         throw Exception('Email and password cannot be empty');
       }
 
-      final UserCredential result = await _auth.signInWithEmailAndPassword(
+      UserCredential result = await _auth.signInWithEmailAndPassword(
         email: email.trim().toLowerCase(),
         password: password,
       );
 
-      final User? firebaseUser = result.user;
-      if (firebaseUser == null) {
-        return null;
+      if (result.user != null) {
+        // Fetch user document from Firestore
+        DocumentSnapshot userDoc = await _firestore
+            .collection('users')
+            .doc(result.user!.uid)
+            .get();
+
+        if (userDoc.exists) {
+          return AppUser.fromMap(userDoc.data() as Map<String, dynamic>);
+        } else {
+          // Create a new user document if it does not exist
+          AppUser newUser = AppUser(
+            id: result.user!.uid,
+            email: result.user!.email ?? email.trim().toLowerCase(),
+            name: result.user!.displayName ?? 'User',
+            role: 'user', // Assigned default role as user
+          );
+
+          await _firestore
+              .collection('users')
+              .doc(result.user!.uid)
+              .set(newUser.toMap());
+
+          return newUser;
+        }
       }
-
-      final DocumentSnapshot<Map<String, dynamic>> userDoc =
-          await _firestore.collection('users').doc(firebaseUser.uid).get();
-
-      if (userDoc.exists && userDoc.data() != null) {
-        final data = userDoc.data()!;
-
-        print('LOGGED IN UID: ${firebaseUser.uid}');
-        print('FIRESTORE USER DATA: $data');
-        print('ROLE FROM FIRESTORE: ${data['role']}');
-
-        return AppUser(
-          id: firebaseUser.uid,
-          email: (data['email'] ?? firebaseUser.email ?? email.trim())
-              .toString()
-              .trim()
-              .toLowerCase(),
-          name: (data['name'] ?? firebaseUser.displayName ?? 'User')
-              .toString()
-              .trim(),
-          role: (data['role'] ?? 'user').toString().trim().toLowerCase(),
-        );
-      } else {
-        final AppUser newUser = AppUser(
-          id: firebaseUser.uid,
-          email: (firebaseUser.email ?? email.trim()).trim().toLowerCase(),
-          name: (firebaseUser.displayName ?? 'User').trim(),
-          role: 'user',
-        );
-
-        await _firestore.collection('users').doc(firebaseUser.uid).set(
-              newUser.toMap(),
-            );
-
-        print('NO FIRESTORE USER DOC FOUND. CREATED DEFAULT USER DOC.');
-
-        return newUser;
-      }
+      return null;
     } on FirebaseAuthException catch (e) {
       throw Exception(_getAuthErrorMessage(e.code));
     } catch (e) {
@@ -76,140 +80,99 @@ class AuthService {
     }
   }
 
+  // Registers a new user with email, password, and name
   Future<AppUser?> registerWithEmailPassword(
     String email,
     String password,
     String name,
   ) async {
     try {
+      // Validate registration inputs
       if (email.trim().isEmpty || password.isEmpty || name.trim().isEmpty) {
         throw Exception('All fields are required');
-      }
-
-      if (!isValidEmail(email.trim())) {
-        throw Exception('Please enter a valid email address');
       }
 
       if (!isValidPassword(password)) {
         throw Exception(getPasswordStrengthMessage(password));
       }
 
-      final UserCredential result = await _auth.createUserWithEmailAndPassword(
+      // Create new user account in Firebase Auth
+      UserCredential result = await _auth.createUserWithEmailAndPassword(
         email: email.trim().toLowerCase(),
         password: password,
       );
 
-      final User? firebaseUser = result.user;
-      if (firebaseUser == null) {
-        return null;
+      if (result.user != null) {
+        await result.user!.updateDisplayName(name.trim());
+
+        // Create user object and save to Firestore
+        AppUser newUser = AppUser(
+          id: result.user!.uid,
+          email: email.trim().toLowerCase(),
+          name: name.trim(),
+          role: 'user', // Assigned default role as user
+        );
+
+        await _firestore
+            .collection('users')
+            .doc(result.user!.uid)
+            .set(newUser.toMap());
+
+        return newUser;
       }
-
-      await firebaseUser.updateDisplayName(name.trim());
-
-      final AppUser newUser = AppUser(
-        id: firebaseUser.uid,
-        email: email.trim().toLowerCase(),
-        name: name.trim(),
-        role: 'user',
-      );
-
-      await _firestore.collection('users').doc(firebaseUser.uid).set(
-            newUser.toMap(),
-          );
-
-      print('REGISTERED USER DOC CREATED FOR UID: ${firebaseUser.uid}');
-
-      return newUser;
+      return null;
     } on FirebaseAuthException catch (e) {
       throw Exception(_getAuthErrorMessage(e.code));
     } catch (e) {
-      print('Registration error: $e');
-      if (e.toString().contains('Exception:')) rethrow;
-      throw Exception(
-        'An unexpected error occurred during registration. Please try again.',
-      );
+      rethrow;
     }
   }
 
-  Future<String> getUserRole(String uid) async {
-    try {
-      final doc = await _firestore.collection('users').doc(uid).get();
-      final data = doc.data();
-
-      if (data != null) {
-        return (data['role'] ?? 'user').toString().trim().toLowerCase();
-      }
-
-      // Fallback: if there's no users doc, check the separate 'admins' collection
-      // (some admin creation paths stored admins in 'admins' only).
-      final adminDoc = await _firestore.collection('admins').doc(uid).get();
-      if (adminDoc.exists) return 'admin';
-
-      return 'user';
-    } catch (e) {
-      print('getUserRole error: $e');
-      return 'user';
-    }
-  }
-
-  Future<AppUser?> getUserData(String uid) async {
-    try {
-      final DocumentSnapshot<Map<String, dynamic>> userDoc =
-          await _firestore.collection('users').doc(uid).get();
-
-      if (userDoc.exists && userDoc.data() != null) {
-        final data = userDoc.data()!;
-
-        return AppUser(
-          id: uid,
-          email: (data['email'] ?? '').toString(),
-          name: (data['name'] ?? 'User').toString(),
-          role: (data['role'] ?? 'user').toString().trim().toLowerCase(),
-        );
-      }
-
-      return null;
-    } catch (e) {
-      print('Get user data error: $e');
-      return null;
-    }
-  }
-
+  // Sends a password reset email to the user
   Future<void> resetPassword(String email) async {
     try {
-      if (email.trim().isEmpty) {
-        throw Exception('Email cannot be empty');
-      }
-
-      if (!isValidEmail(email.trim())) {
-        throw Exception('Please enter a valid email address');
-      }
-
-      await _auth.sendPasswordResetEmail(
-        email: email.trim().toLowerCase(),
-      );
+      if (email.trim().isEmpty) throw Exception('Email cannot be empty');
+      await _auth.sendPasswordResetEmail(email: email.trim().toLowerCase());
     } on FirebaseAuthException catch (e) {
       throw Exception(_getAuthErrorMessage(e.code));
     } catch (e) {
-      print('Reset password error: $e');
-      if (e.toString().contains('Exception:')) rethrow;
-      throw Exception('An unexpected error occurred. Please try again.');
+      rethrow;
     }
   }
 
+  // Signs out the current user
   Future<void> signOut() async {
     try {
       await _auth.signOut();
     } catch (e) {
-      print('Sign out error: $e');
-      throw Exception('Failed to sign out. Please try again.');
+      throw Exception('Failed to sign out.');
     }
   }
 
-  bool isValidEmail(String email) {
-    return RegExp(r'^[\w\-.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email.trim());
+  // Retrieves user profile data from Firestore
+  Future<AppUser?> getUserData(String uid) async {
+    try {
+      DocumentSnapshot userDoc = await _firestore
+          .collection('users')
+          .doc(uid)
+          .get();
+      if (userDoc.exists) {
+        return AppUser.fromMap(userDoc.data() as Map<String, dynamic>);
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
   }
 
+  // Checks if a user is currently signed in
+  bool get isSignedIn => _auth.currentUser != null;
+
+  // Helper method: Validates email format
+  bool isValidEmail(String email) =>
+      RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email);
+
+  // Helper method: Validates password strength
   bool isValidPassword(String password) {
     if (password.length < 8) return false;
     if (!RegExp(r'[A-Z]').hasMatch(password)) return false;
@@ -219,52 +182,32 @@ class AuthService {
     return true;
   }
 
+  // Helper method: Provides feedback on password weakness
   String getPasswordStrengthMessage(String password) {
-    final List<String> issues = [];
-
-    if (password.length < 8) {
-      issues.add('at least 8 characters');
-    }
-    if (!RegExp(r'[A-Z]').hasMatch(password)) {
+    List<String> issues = [];
+    if (password.length < 8) issues.add('at least 8 characters');
+    if (!RegExp(r'[A-Z]').hasMatch(password))
       issues.add('one uppercase letter');
-    }
-    if (!RegExp(r'[a-z]').hasMatch(password)) {
+    if (!RegExp(r'[a-z]').hasMatch(password))
       issues.add('one lowercase letter');
-    }
-    if (!RegExp(r'[0-9]').hasMatch(password)) {
-      issues.add('one number');
-    }
-    if (!RegExp(r'[!@#$%^&*(),.?":{}|<>]').hasMatch(password)) {
+    if (!RegExp(r'[0-9]').hasMatch(password)) issues.add('one number');
+    if (!RegExp(r'[!@#$%^&*(),.?":{}|<>]').hasMatch(password))
       issues.add('one special character');
-    }
 
     return issues.isEmpty
         ? 'Strong password!'
         : 'Password must contain: ${issues.join(', ')}';
   }
 
+  // Helper method: Maps Firebase error codes to user-friendly messages
   String _getAuthErrorMessage(String errorCode) {
     switch (errorCode) {
       case 'user-not-found':
-        return 'No account found with this email address.';
+        return 'No account found with this email.';
       case 'wrong-password':
-        return 'Incorrect password. Please try again.';
-      case 'invalid-email':
-        return 'Please enter a valid email address.';
-      case 'user-disabled':
-        return 'This account has been disabled.';
-      case 'too-many-requests':
-        return 'Too many attempts. Please try again later.';
+        return 'Incorrect password.';
       case 'email-already-in-use':
-        return 'An account already exists with this email address.';
-      case 'weak-password':
-        return 'Password is too weak. Please choose a stronger password.';
-      case 'invalid-credential':
-        return 'Invalid email or password. Please check your credentials.';
-      case 'network-request-failed':
-        return 'Network error. Please check your internet connection.';
-      case 'operation-not-allowed':
-        return 'This operation is not allowed. Please contact support.';
+        return 'Email is already registered.';
       default:
         return 'An error occurred. Please try again.';
     }
