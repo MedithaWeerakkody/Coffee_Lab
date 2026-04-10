@@ -2,8 +2,8 @@
 
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
-import 'home_screen.dart'; // User interface එක සඳහා
-import 'AdminMainScreen.dart'; // Admin interface එක සඳහා (File name එක නිවැරදිදැයි පරීක්ෂා කරන්න)
+import 'home_screen.dart'; // User interface
+import 'AdminMainScreen.dart'; // Admin interface 
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -190,36 +190,24 @@ class _LoginPageState extends State<_LoginPage> {
           const SizedBox(height: 30),
           const Text(
             'Welcome back!',
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
+            style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white),
           ),
           const SizedBox(height: 40),
-          _buildTextField(
-            'Email',
-            Icons.email_outlined,
-            controller: _emailController,
-          ),
+          _buildTextField('Email', Icons.email_outlined, controller: _emailController),
           const SizedBox(height: 20),
           _buildTextField(
             'Password',
             Icons.lock_outline,
             isPassword: true,
             obscureText: _obscurePassword,
-            onToggleVisibility: () =>
-                setState(() => _obscurePassword = !_obscurePassword),
+            onToggleVisibility: () => setState(() => _obscurePassword = !_obscurePassword),
             controller: _passwordController,
           ),
           Align(
             alignment: Alignment.centerRight,
             child: TextButton(
               onPressed: () => widget.onNavigate(2),
-              child: const Text(
-                'Forgot Password?',
-                style: TextStyle(color: Colors.white70),
-              ),
+              child: const Text('Forgot Password?', style: TextStyle(color: Colors.white70)),
             ),
           ),
           const SizedBox(height: 30),
@@ -229,10 +217,7 @@ class _LoginPageState extends State<_LoginPage> {
           const SizedBox(height: 20),
           TextButton(
             onPressed: () => widget.onNavigate(1),
-            child: const Text(
-              "Don't have an account? Sign UP",
-              style: TextStyle(color: Colors.white),
-            ),
+            child: const Text("Don't have an account? Sign UP", style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -253,8 +238,7 @@ class _RegisterPageState extends State<_RegisterPage> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController =
-      TextEditingController();
+  final TextEditingController _confirmPasswordController = TextEditingController();
   final AuthService _authService = AuthService();
 
   bool _isLoading = false;
@@ -265,10 +249,7 @@ class _RegisterPageState extends State<_RegisterPage> {
   void _register() async {
     if (_passwordController.text != _confirmPasswordController.text) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Passwords do not match'),
-          backgroundColor: Colors.red,
-        ),
+        const SnackBar(content: Text('Passwords do not match'), backgroundColor: Colors.red),
       );
       return;
     }
@@ -312,32 +293,19 @@ class _RegisterPageState extends State<_RegisterPage> {
           const SizedBox(height: 30),
           const Text(
             'Create Account',
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
+            style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white),
           ),
           const SizedBox(height: 40),
-          _buildTextField(
-            'Full Name',
-            Icons.person_outline,
-            controller: _nameController,
-          ),
+          _buildTextField('Full Name', Icons.person_outline, controller: _nameController),
           const SizedBox(height: 20),
-          _buildTextField(
-            'Email Address',
-            Icons.email_outlined,
-            controller: _emailController,
-          ),
+          _buildTextField('Email Address', Icons.email_outlined, controller: _emailController),
           const SizedBox(height: 20),
           _buildTextField(
             'Password',
             Icons.lock_outline,
             isPassword: true,
             obscureText: _obscurePassword,
-            onToggleVisibility: () =>
-                setState(() => _obscurePassword = !_obscurePassword),
+            onToggleVisibility: () => setState(() => _obscurePassword = !_obscurePassword),
             controller: _passwordController,
           ),
           const SizedBox(height: 20),
@@ -346,9 +314,7 @@ class _RegisterPageState extends State<_RegisterPage> {
             Icons.lock_outline,
             isPassword: true,
             obscureText: _obscureConfirmPassword,
-            onToggleVisibility: () => setState(
-              () => _obscureConfirmPassword = !_obscureConfirmPassword,
-            ),
+            onToggleVisibility: () => setState(() => _obscureConfirmPassword = !_obscureConfirmPassword),
             controller: _confirmPasswordController,
           ),
           const SizedBox(height: 30),
@@ -358,10 +324,7 @@ class _RegisterPageState extends State<_RegisterPage> {
           const SizedBox(height: 20),
           TextButton(
             onPressed: () => widget.onNavigate(0),
-            child: const Text(
-              "Already have an account? Sign in",
-              style: TextStyle(color: Colors.white),
-            ),
+            child: const Text("Already have an account? Sign in", style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
@@ -389,10 +352,7 @@ class _ResetPasswordPageState extends State<_ResetPasswordPage> {
       await _authService.resetPassword(_emailController.text.trim());
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Password reset link sent! Check your email.'),
-            backgroundColor: Colors.green,
-          ),
+          const SnackBar(content: Text('Password reset link sent! Check your email.'), backgroundColor: Colors.green),
         );
         widget.onNavigate(0);
       }
@@ -421,23 +381,12 @@ class _ResetPasswordPageState extends State<_ResetPasswordPage> {
             const SizedBox(height: 30),
             const Text(
               'Reset Password',
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
+              style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.white),
             ),
             const SizedBox(height: 10),
-            const Text(
-              'Enter Your email to receive a reset link',
-              style: TextStyle(color: Colors.white70),
-            ),
+            const Text('Enter Your email to receive a reset link', style: TextStyle(color: Colors.white70)),
             const SizedBox(height: 40),
-            _buildTextField(
-              'Email Address',
-              Icons.email_outlined,
-              controller: _emailController,
-            ),
+            _buildTextField('Email Address', Icons.email_outlined, controller: _emailController),
             const SizedBox(height: 30),
             _isLoading
                 ? const CircularProgressIndicator(color: Colors.white)
@@ -445,10 +394,7 @@ class _ResetPasswordPageState extends State<_ResetPasswordPage> {
             const SizedBox(height: 20),
             TextButton(
               onPressed: () => widget.onNavigate(0),
-              child: const Text(
-                "Remember your password? Sign in",
-                style: TextStyle(color: Colors.white),
-              ),
+              child: const Text("Remember your password? Sign in", style: TextStyle(color: Colors.white)),
             ),
           ],
         ),
@@ -460,16 +406,12 @@ class _ResetPasswordPageState extends State<_ResetPasswordPage> {
 Widget _buildLogo() {
   return Container(
     padding: const EdgeInsets.all(20),
-    decoration: const BoxDecoration(
-      color: Colors.white,
-      shape: BoxShape.circle,
-    ),
+    decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
     child: Image.asset(
       'assets/images/app_icon.png',
       height: 80,
       width: 80,
-      errorBuilder: (c, e, s) =>
-          const Icon(Icons.coffee, size: 50, color: Color(0xFF4E342E)),
+      errorBuilder: (c, e, s) => const Icon(Icons.coffee, size: 50, color: Color(0xFF4E342E)),
     ),
   );
 }

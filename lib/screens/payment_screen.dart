@@ -35,32 +35,26 @@ class _PaymentScreenState extends State<PaymentScreen> {
   }
 
   void _processPayment() async {
-    if (!_formKey.currentState!.validate()) {
+    // Basic validation for card payment
+    if (_selectedPaymentMethod == 'card' &&
+        !_formKey.currentState!.validate()) {
       return;
     }
 
     final cart = Provider.of<CartProvider>(context, listen: false);
     if (cart.items.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Your cart is empty'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      _showErrorSnackBar('Your cart is empty');
       return;
     }
 
-    setState(() {
-      _isLoading = true;
-    });
+    setState(() => _isLoading = true);
 
     try {
-      // Simulate payment processing
+      // Simulate network delay
       await Future.delayed(const Duration(seconds: 2));
 
       final user = _authService.currentUser;
       if (user != null) {
-        // Create order
         final orderId = await _orderService.createOrder(
           userId: user.uid,
           items: cart.items,
@@ -68,10 +62,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
         );
 
         if (orderId != null && mounted) {
-          // Clear cart
           cart.clearCart();
-
-          // Show success dialog
           _showSuccessDialog();
         } else {
           _showErrorSnackBar('Failed to create order');
@@ -80,13 +71,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
         _showErrorSnackBar('User not authenticated');
       }
     } catch (e) {
-      _showErrorSnackBar('Payment failed: ${e.toString()}');
+      _showErrorSnackBar('Error: ${e.toString()}');
     } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -95,33 +82,18 @@ class _PaymentScreenState extends State<PaymentScreen> {
       context: context,
       barrierDismissible: false,
       builder: (context) => AlertDialog(
-        title: const Row(
-          children: [
-            Icon(Icons.check_circle, color: Colors.green, size: 28),
-            SizedBox(width: 8),
-            Text('Payment Successful!'),
-          ],
-        ),
-        content: const Text(
-          'Your order has been placed successfully. You will receive a confirmation email shortly.',
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        title: const Text('Order Placed!'),
+        content: const Text('Your delicious coffee order has been received.'),
         actions: [
           TextButton(
-            onPressed: () {
-              Navigator.of(context).pop(); // Close dialog
-              Navigator.of(context).pushNamedAndRemoveUntil(
-                '/home',
-                (route) => false,
-              );
-            },
-            child: const Text('Continue Shopping'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(context).pop(); // Close dialog
-              Navigator.of(context).pushReplacementNamed('/history');
-            },
-            child: const Text('View Orders'),
+            onPressed: () => Navigator.of(
+              context,
+            ).pushNamedAndRemoveUntil('/home', (route) => false),
+            child: const Text(
+              'Back to Home',
+              style: TextStyle(color: Color(0xFF5D4037)),
+            ),
           ),
         ],
       ),
@@ -130,270 +102,239 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
   void _showErrorSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.red,
-      ),
+      SnackBar(content: Text(message), backgroundColor: Colors.red),
     );
-  }
-
-  String? _validateCardNumber(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Please enter card number';
-    }
-    if (value.length < 16) {
-      return 'Card number must be 16 digits';
-    }
-    return null;
-  }
-
-  String? _validateExpiry(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Please enter expiry date';
-    }
-    if (!RegExp(r'^\d{2}/\d{2}$').hasMatch(value)) {
-      return 'Please enter valid format (MM/YY)';
-    }
-    return null;
-  }
-
-  String? _validateCVV(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Please enter CVV';
-    }
-    if (value.length < 3) {
-      return 'CVV must be 3 digits';
-    }
-    return null;
   }
 
   @override
   Widget build(BuildContext context) {
+    final cart = Provider.of<CartProvider>(context);
+    final brownColor = const Color(0xFF5D4037);
+
     return Scaffold(
+      backgroundColor: const Color(0xFFE0E0E0), // Wireframe background
       appBar: AppBar(
-        title: const Text('Payment'),
+        backgroundColor: brownColor,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        title: const Text('Payment', style: TextStyle(color: Colors.white)),
+        elevation: 0,
       ),
-      body: Consumer<CartProvider>(
-        builder: (context, cart, child) {
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Order Summary
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: Colors.grey[100],
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Order Summary',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        ...cart.items.map((item) => Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Expanded(
-                                child: Text('${item.name} x${item.quantity}'),
-                              ),
-                              Text('\$${item.totalPrice.toStringAsFixed(2)}'),
-                            ],
-                          ),
-                        )),
-                        const Divider(),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            const Text(
-                              'Total:',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            Text(
-                              '\$${cart.totalAmount.toStringAsFixed(2)}',
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF795548),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Payment Method
-                  const Text(
-                    'Payment Method',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  
-                  Row(
-                    children: [
-                      Expanded(
-                        child: RadioListTile<String>(
-                          title: const Text('Credit Card'),
-                          value: 'card',
-                          groupValue: _selectedPaymentMethod,
-                          onChanged: (value) {
-                            setState(() {
-                              _selectedPaymentMethod = value!;
-                            });
-                          },
-                        ),
-                      ),
-                      Expanded(
-                        child: RadioListTile<String>(
-                          title: const Text('Cash'),
-                          value: 'cash',
-                          groupValue: _selectedPaymentMethod,
-                          onChanged: (value) {
-                            setState(() {
-                              _selectedPaymentMethod = value!;
-                            });
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Card form (only show if card is selected)
-                  if (_selectedPaymentMethod == 'card') ...[
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 1. Order Summary Section
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
                     const Text(
-                      'Card Information',
+                      'Order summary',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const SizedBox(height: 12),
-
-                    TextFormField(
-                      controller: _nameController,
-                      decoration: const InputDecoration(
-                        labelText: 'Cardholder Name',
-                        prefixIcon: Icon(Icons.person),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter cardholder name';
-                        }
-                        return null;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-
-                    TextFormField(
-                      controller: _cardNumberController,
-                      keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
-                        labelText: 'Card Number',
-                        prefixIcon: Icon(Icons.credit_card),
-                        hintText: '1234 5678 9012 3456',
-                      ),
-                      validator: _validateCardNumber,
-                    ),
-                    const SizedBox(height: 16),
-
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextFormField(
-                            controller: _expiryController,
-                            keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(
-                              labelText: 'Expiry Date',
-                              prefixIcon: Icon(Icons.date_range),
-                              hintText: 'MM/YY',
+                    const SizedBox(height: 10),
+                    ...cart.items.map(
+                      (item) => Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              '${item.name} x${item.quantity}',
+                              style: const TextStyle(fontSize: 15),
                             ),
-                            validator: _validateExpiry,
+                            Text(
+                              'Rs. ${(item.price * item.quantity).toStringAsFixed(2)}',
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const Divider(
+                      height: 24,
+                      thickness: 1,
+                      color: Colors.black54,
+                    ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Total :',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: TextFormField(
-                            controller: _cvvController,
-                            keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(
-                              labelText: 'CVV',
-                              prefixIcon: Icon(Icons.security),
-                              hintText: '123',
-                            ),
-                            validator: _validateCVV,
+                        Text(
+                          'Rs. ${cart.totalAmount.toStringAsFixed(2)}',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
                       ],
                     ),
-                  ] else ...[
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.orange.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.orange),
-                      ),
-                      child: const Row(
-                        children: [
-                          Icon(Icons.info, color: Colors.orange),
-                          SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              'You will pay in cash when you pick up your order.',
-                              style: TextStyle(color: Colors.orange),
-                            ),
-                          ),
-                        ],
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 25),
+              const Text(
+                'Payment Method',
+                style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+              ),
+
+              // 2. Payment Method Selector (Radio Buttons)
+              Row(
+                children: [
+                  Radio<String>(
+                    value: 'card',
+                    groupValue: _selectedPaymentMethod,
+                    activeColor: Colors.black,
+                    onChanged: (val) =>
+                        setState(() => _selectedPaymentMethod = val!),
+                  ),
+                  const Text('Credit Card'),
+                  const SizedBox(width: 20),
+                  Radio<String>(
+                    value: 'cash',
+                    groupValue: _selectedPaymentMethod,
+                    activeColor: Colors.black,
+                    onChanged: (val) =>
+                        setState(() => _selectedPaymentMethod = val!),
+                  ),
+                  const Text('Cash'),
+                ],
+              ),
+
+              const SizedBox(height: 10),
+
+              // 3. Conditional Content: Card Form OR Cash Message
+              if (_selectedPaymentMethod == 'card') ...[
+                const Text(
+                  'Card Information',
+                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 15),
+                _buildTextField(_nameController, 'Cardholder Name'),
+                const SizedBox(height: 12),
+                _buildTextField(
+                  _cardNumberController,
+                  'Card Number',
+                  isNumber: true,
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _buildTextField(_expiryController, 'Expiry Data'),
+                    ),
+                    const SizedBox(width: 15),
+                    Expanded(
+                      child: _buildTextField(
+                        _cvvController,
+                        'CVV',
+                        isNumber: true,
                       ),
                     ),
                   ],
-                  const SizedBox(height: 32),
-
-                  // Pay button
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: ElevatedButton(
-                      onPressed: _isLoading ? null : _processPayment,
-                      child: _isLoading
-                          ? const CircularProgressIndicator(color: Colors.white)
-                          : Text(
-                              _selectedPaymentMethod == 'card'
-                                  ? 'Pay \$${cart.totalAmount.toStringAsFixed(2)}'
-                                  : 'Place Order',
-                              style: const TextStyle(fontSize: 16),
-                            ),
-                    ),
+                ),
+                const SizedBox(height: 40),
+                _buildActionButton(
+                  'Pay Rs. ${cart.totalAmount.toStringAsFixed(2)}',
+                ),
+              ] else ...[
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(15),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                ],
-              ),
-            ),
-          );
-        },
+                  child: const Text(
+                    'You will pay in cash when you pick your order',
+                    style: TextStyle(
+                      color: Colors.orange,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+                const SizedBox(height: 40),
+                _buildActionButton('Place Order'),
+              ],
+            ],
+          ),
+        ),
       ),
       bottomNavigationBar: const BottomNavigation(currentIndex: 1),
+    );
+  }
+
+  // Helper Widget for TextFields to match wireframe style
+  Widget _buildTextField(
+    TextEditingController controller,
+    String hint, {
+    bool isNumber = false,
+  }) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: isNumber ? TextInputType.number : TextInputType.text,
+      decoration: InputDecoration(
+        hintText: hint,
+        filled: true,
+        fillColor: const Color(0xFFF0F0F0),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: const BorderSide(color: Color(0xFF5D4037)),
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 12,
+        ),
+      ),
+      validator: (val) => val == null || val.isEmpty ? 'Required' : null,
+    );
+  }
+
+  // Helper Widget for the big brown button
+  Widget _buildActionButton(String label) {
+    return SizedBox(
+      width: double.infinity,
+      height: 55,
+      child: ElevatedButton(
+        onPressed: _isLoading ? null : _processPayment,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF5D4037),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15),
+          ),
+        ),
+        child: _isLoading
+            ? const CircularProgressIndicator(color: Colors.white)
+            : Text(
+                label,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+      ),
     );
   }
 }
